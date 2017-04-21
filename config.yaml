@@ -1,0 +1,25 @@
+commitfest:
+    username: "???"
+    secret: "???"
+    url: "https://???"
+    number-parallel-jobs: 5
+repository:
+    url: "http://git.postgresql.org/git/postgresql.git"
+build:
+    dirs:
+        top-dir: "$HOME/postgresql/commitfest"
+        cache-dir: "$TOPDIR/cache"
+        build-dir: "$TOPDIR/build"
+    options:
+    cleanup:
+        cleanup-builds: 1
+        cleanup-repository: 0
+        cleanup-test-files: 1
+locking:
+    lockfile: "$TOPDIR/testtool.lock"
+platform:
+    linux: 1
+git:
+    executable: "/usr/bin/git"
+    depth: 0
+
