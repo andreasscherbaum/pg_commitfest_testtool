@@ -16,32 +16,37 @@ INSERT INTO "public"."commitfest_patch_type"
 -- all PostgreSQL versions
 -- the 'active' flag can be used to schedule tests for all active versions at once
 -- see the demo query at the end of the file
+-- the idea is that we ask the patch submitter if this is a new feature
+-- (only tested against head) or a bugfix (tested against all active versions)
+-- the 'active_by_default' can be used in the web interface to make this decision
 CREATE TABLE "public"."commitfest_test_pg_versions" (
     id                       SERIAL                  NOT NULL PRIMARY KEY,
     name                     TEXT                    NOT NULL UNIQUE,
-    active                   BOOLEAN                 NOT NULL
+    branch_name_prefix         TEXT                    NOT NULL UNIQUE,
+    active                   BOOLEAN                 NOT NULL,
+    active_by_default        BOOLEAN                 NOT NULL
 );
 INSERT INTO "public"."commitfest_test_pg_versions"
-            (name, active)
-     VALUES ('head', true),
-            ('10.0', true),
-            ('9.6', true),
-            ('9.5', true),
-            ('9.4', true),
-            ('9.3', true),
-            ('9.2', true),
-            ('9.1', true),
-            ('9.0', true),
-            ('8.4', false),
-            ('8.3', false),
-            ('8.2', false),
-            ('8.1', false),
-            ('7.4', false),
-            ('7.3', false),
-            ('7.2', false),
-            ('7.1', false),
-            ('7.0', false);
-
+            (name, branch_name_prefix, active, active_by_default)
+     VALUES ('master', 'master', true, true),
+            ('10.0', 'REL_10', true, false),
+            ('9.6', 'REL9_6', true, false),
+            ('9.5', 'REL9_5', true, false),
+            ('9.4', 'REL9_4', true, false),
+            ('9.3', 'REL9_3', true, false),
+            ('9.2', 'REL9_2', true, false),
+            ('9.1', 'REL9_1', true, false),
+            ('9.0', 'REL9_0', true, false),
+            ('8.4', 'REL8_4', false),
+            ('8.3', 'REL8_3', false),
+            ('8.2', 'REL8_2', false),
+            ('8.1', 'REL8_1', false),
+            ('8.0', 'REL8_0', false),
+            ('7.4', 'REL7_4', false),
+            ('7.3', 'REL7_3', false),
+            ('7.2', 'REL7_2', false),
+            ('7.1', 'REL7_1', false),
+            ('7.0', 'REL7_0', false);
 
 
 -- all supported platforms
@@ -56,6 +61,7 @@ INSERT INTO "public"."commitfest_test_platforms"
             (name, active)
      VALUES ('linux', true),
             ('windows', false),
+            ('osx', false),
             ('freebds', false),
             ('netbsd', false),
             ('openbsd', false);
@@ -76,17 +82,12 @@ CREATE TABLE "public"."commitfest_test_patch" (
     name                     TEXT                    NOT NULL DEFAULT '',
     ts_added                 TIMESTAMPTZ             NOT NULL
                                                      DEFAULT NOW(),
-    ts_started               TIMESTAMPTZ             NOT NULL
-                                                     DEFAULT NOW(),
-    ts_finished              TIMESTAMPTZ             NOT NULL
-                                                     DEFAULT NOW(),
-    -- this will be set to TRUE while the test runs, and to FALSE otherwise
-    working_on               BOOLEAN                 NOT NULL
-                                                     DEFAULT FALSE,
-    -- this will be set to TRUE when the task is finished (with or without error)
-    finished                 BOOLEAN                 NOT NULL
-                                                     DEFAULT FALSE,
-    result                   TEXT                    NOT NULL
+    -- not started: ts_started IS NULL
+    -- started: ts_started is timestamp, ts_finished IS NULL
+    -- finished: ts_started is timestamp, ts_finished is timestamp
+    ts_started               TIMESTAMPTZ             NULL,
+    ts_finished              TIMESTAMPTZ             NULL,
+    state                    TEXT                    NOT NULL
                                                      -- queued: still working on it
                                                      -- aborted: something happened which is buildfarm related
                                                      -- failed: patchset failed to compile or run tests
